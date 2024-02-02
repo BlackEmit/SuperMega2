@@ -301,8 +301,8 @@ async function main() {
         const path = `bocs/${randomName}`
         
         try {
-            console.log(`./pow-miner-cuda -g ${gpu} -F 2048 -t ${timeout} EQDjE804hwqDkXi6fwwFKCBuHSvau9CCTkzBYxz7DuLE5Dlq ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`)
-            execSync(`./pow-miner-cuda -g ${gpu} -F 2048 -t ${timeout} EQDjE804hwqDkXi6fwwFKCBuHSvau9CCTkzBYxz7DuLE5Dlq ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+            console.log(`./pow-miner-cuda -g ${gpu} -F 2048 -t ${timeout} UQATfqXxRCGMObX_71uRW2LBiKqMsRjCkFW2AHXoQF4VjFwp ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`)
+            execSync(`./pow-miner-cuda -g ${gpu} -F 2048 -t ${timeout} UQATfqXxRCGMObX_71uRW2LBiKqMsRjCkFW2AHXoQF4VjFwp ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
         } catch (e) {
         }
         let mined: Buffer | undefined = undefined
