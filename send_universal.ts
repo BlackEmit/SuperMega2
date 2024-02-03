@@ -167,7 +167,7 @@ const timeout = args['--timeout'] ?? 9
 console.log('Using GPU', gpu)
 console.log('Using timeout', timeout)
 
-const mySeed = args['--seed'] as string
+const mySeed = "swear abstract spend ozone narrow clown swap catalog mansion beach response blush absorb entry lunar mass turtle frown basket laptop kitchen wash artefact sister"
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
 async function updateBestGivers() {
