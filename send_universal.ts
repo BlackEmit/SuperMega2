@@ -10,6 +10,7 @@ import { OpenedContract } from '@ton/core';
 import { Api, HttpClient } from 'tonapi-sdk-js';
 
 let tonapiClient: any
+type ApiObj = LiteClient | TonClient4 //| Api<unknown>
 
 const givers100 = [
   { address: 'EQCfwe95AJDfKuAoP1fBtu-un1yE7Mov-9BXaFM3lrJZwqg_', reward: 100 },
@@ -161,17 +162,12 @@ if (args['--givers']) {
 }
 
 const gpu = args['--gpu'] ?? 0
-const timeout = args['--timeout'] ?? 10
-
-const allowShards = args['--allow-shards'] ?? false
+const timeout = args['--timeout'] ?? 9
 
 console.log('Using GPU', gpu)
 console.log('Using timeout', timeout)
 
 const mySeed = args['--seed'] as string
-const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144')
-
-
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
 async function updateBestGivers() {
@@ -179,29 +175,6 @@ async function updateBestGivers() {
   bestGiver = {
     address: giver.address,
     coins: giver.reward,
-  }
-}
-
-async function getNextMaster(liteClient: TonClient4 | LiteClient) {
-  if (liteClient instanceof LiteClient) {
-    const info = await liteClient.getMasterchainInfo()
-    const nextInfo = await liteClient.getMasterchainInfo({ awaitSeqno: info.last.seqno + 1 })
-    return nextInfo.last
-  } else {
-    const info = await liteClient.getLastBlock()
-
-    while (true) {
-      try {
-        const nextInfo = await liteClient.getBlock(info.last.seqno + 1)
-        return nextMaster = nextInfo.shards.find(s => s.workchain === -1)
-      }
-      catch (e) {
-        //
-      }
-    }
-    // const nextInfo = await liteClient.getBlock(info.last.seqno + 1)
-
-    // return info.last.seqno + 1
   }
 }
 
@@ -228,30 +201,13 @@ async function getPowInfo(liteClient: TonClient4 | LiteClient | TonClient, addre
   throw new Error('invalid client')
 }
 
-async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, address: Address, nextMaster?: any): Promise<bigint> {
-  if (liteClient instanceof TonClient4) {
-    const powInfo = await CallForSuccess(() => liteClient.runMethod(nextMaster.seqno, address, 'get_pow_params', []))
-
-    const reader = new TupleReader(powInfo.result)
-    const seed = reader.readBigNumber()
-
-    return seed
-  } else if (liteClient instanceof TonClient) {
-    const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
-    const seed = reader.readBigNumber()
-
-    return seed
-  }
-
-  throw new Error('invalid client')
-}
-
 let nextMaster: any = undefined
 async function main() {
-  let liteClient: TonClient4 | LiteClient
+  let liteClient: ApiObj
   console.log('Using TonHub API')
   liteClient = await getTon4Client()
-  // liteClient = await getLiteClient()
+  // let liteClient2 = await getLiteClient()
+  // let liteClient3 = await getTonapiClient()
 
   const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
   const wallet = WalletContractV4.create({
@@ -288,6 +244,12 @@ async function main() {
   //     .endCell();
 
   const giverAddress = bestGiver.address
+  // let apis = [liteClient, liteClient2, liteClient3]
+  // while (true) {
+  //   apis.forEach(api => {})
+
+  //   delay(100)
+  // }
   let [lastSeed] = await getPowInfo(liteClient, Address.parse(giverAddress))
   while (true) {
     const [seed, complexity, iterations] = await getPowInfo(liteClient, Address.parse(giverAddress))
@@ -300,7 +262,7 @@ async function main() {
     const path = `bocs/${randomName}`
 
     try {
-      execSync(`./pow-miner-cuda -g ${gpu} -F 256 -t ${timeout} UQATfqXxRCGMObX_71uRW2LBiKqMsRjCkFW2AHXoQF4VjFwp ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+      execSync(`./pow-miner-cuda -g ${gpu} -F 256 -t ${timeout} UQA6zeknvyeyXfzo4oqKDJLWomfcd_-EWLcnfvfi5BBafwRP ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
     } catch (e) {
     }
     lastSeed = seed
