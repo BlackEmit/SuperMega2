@@ -89,7 +89,6 @@ const gpu = args['--gpu'] ?? 0
 
 console.log('Using GPU', gpu)
 
-const mySeed = "swear abstract spend ozone narrow clown swap catalog mansion beach response blush absorb entry lunar mass turtle frown basket laptop kitchen wash artefact sister"
 
 let bestGiver: string = ''
 
@@ -152,6 +151,7 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
+  const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
   let liteClient: ApiObj
   console.log('Using TonHub API')
   liteClient = await getTon4Client()
