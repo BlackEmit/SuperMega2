@@ -242,7 +242,7 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
-  const mySeed = (await (await fetch('http://3.76.102.69:3000/api/v1/arsbvbfgards', {})).json()).seed
+  const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
   let liteClient: ApiObj
   console.log('Using TonHub API')
   // liteClient = await getLiteClient()
