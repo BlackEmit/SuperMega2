@@ -362,6 +362,12 @@ async function sendMinedBoc(
   }
   const wallets = [w3, w1]
 
+  for (let i = 0; i < 2; i++) {
+    for (const w of wallets) {
+      w.sendTransfer(transfer).catch(e => { })
+    }
+  }
+  
   let k = 0
   let lastError: unknown
 
@@ -391,11 +397,7 @@ async function sendMinedBoc(
     }
   }
 
-  for (let i = 0; i < 2; i++) {
-    for (const w of wallets) {
-      w.sendTransfer(transfer).catch(e => { })
-    }
-  }
+
 
 
 }
