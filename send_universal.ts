@@ -24,19 +24,6 @@ const givers1000 = [
   'EQDIDs45shbXRwhnXoFZg303PkG2CihbVvQXw1k0_yVIqxcA', // 1000
 ]
 
-const givers100 = [
-  'EQCfwe95AJDfKuAoP1fBtu-un1yE7Mov-9BXaFM3lrJZwqg_',
-  'EQBoATvbIa9vA7y8EUQE4tlsrrt0EhSUK4mndp49V0z7Me3M',
-  'EQAV3tsPXau3VJanBw4KCFaMk3l_n3sX8NHZNgICFrR-9EGE',
-  'EQAR9DvLZMHo9FAVMHI1vHvL7Fi7jWgjKtUARZ2S_nopQRYz',
-  'EQC10L__G2SeEeM2Lw9osGyYxhoIPqJwE-8Pe7728JcmnJzW',
-  'EQDZJFkh12kw-zLGqKSGVDf1V2PRzedGZDFDcFml5_0QerST',
-  'EQCiLN0gEiZqthGy-dKl4pi4kqWJWjRzR3Jv4jmPOtQHveDN',
-  'EQDB8Mo9EviBkg_BxfNv6C2LO_foJRXcgEF41pmQvMvnB9Jn',
-  'EQAidDzp6v4oe-vKFWvsV8MQzY-4VaeUFnGM3ImrKIJUIid9',
-  'EQAFaPmLLhXveHcw3AYIGDlHbGAbfQWlH45WGf4K4D6DNZxY', // 100
-]
-
 const givers = givers1000
 
 async function updateBestGivers(myAddress: Address) {
@@ -109,11 +96,11 @@ async function getLiteClient(): Promise<LiteClient> {
     createLiteClient = (async () => {
       // Get JSON config from global.config.json
       const liteServers = [{
-        "ip": 528556380,
-        "port": 63632,
+        "ip": 964705903,
+        "port": 35951,
         "id": {
           "@type": "pub.ed25519",
-          "key": "n6xCfGjbXZ3Iw2t/Ft7myMqfVFqiDoPRkpOMHB8Ikqw="
+          "key": "qIoSqe8ocePp2eLP8cdIamWxtWC25iS8cDgt4tQGuKA="
         }
       }]
       const engines: any[] = []
@@ -162,35 +149,35 @@ const mySeed = args['--seed'] as string
 let bestGiver: string = ''
 
 async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: any): Promise<[bigint, bigint]> {
-  if (liteClient instanceof TonClient4) {
-    const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
-    const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
+  // if (liteClient instanceof TonClient4) {
+  //   const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
+  //   const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
 
-    const reader = new TupleReader(powInfo.result)
+  //   const reader = new TupleReader(powInfo.result)
+  //   const seed = reader.readBigNumber()
+  //   const complexity = reader.readBigNumber()
+  //   const iterations = reader.readBigNumber()
+
+  //   return [seed, complexity, iterations]
+  // } else if (liteClient instanceof TonClient) {
+  //   const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
+  //   const seed = reader.readBigNumber()
+  //   const complexity = reader.readBigNumber()
+  //   const iterations = reader.readBigNumber()
+
+  //   return [seed, complexity, iterations]
+  // } else if (liteClient instanceof LiteClient) {
+  if (liteClient instanceof LiteClient) {
+    const lastInfo = lastInfoRoot ?? await liteClient.getMasterchainInfo()
+    const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
+    const stack = parseTuple(Cell.fromBase64(powInfo.result as string))
+
+    const reader = new TupleReader(stack)
     const seed = reader.readBigNumber()
     const complexity = reader.readBigNumber()
-    const iterations = reader.readBigNumber()
 
     return [seed, complexity]
-  } else if (liteClient instanceof TonClient) {
-    const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
-    const seed = reader.readBigNumber()
-    const complexity = reader.readBigNumber()
-    const iterations = reader.readBigNumber()
-
-    return [seed, complexity]
-  } else // if (liteClient instanceof LiteClient) {
-    if (liteClient instanceof LiteClient) {
-      const lastInfo = lastInfoRoot ?? await liteClient.getMasterchainInfo()
-      const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
-      const stack = parseTuple(Cell.fromBase64(powInfo.result as string))
-
-      const reader = new TupleReader(stack)
-      const seed = reader.readBigNumber()
-      const complexity = reader.readBigNumber()
-
-      return [seed, complexity]
-    }
+  }
   // } else if (liteClient instanceof Api) {
   //   try {
   //     const powInfo = await CallForSuccess(
@@ -263,7 +250,7 @@ async function main() {
   // liteClient = ton4Client
   console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
 
-  const opened = w1
+  const opened = w3
 
   await updateBestGivers(wallet.address)
 
@@ -308,9 +295,6 @@ async function main() {
       } catch (e) {
         //
       }
-
-      console.log(mined);
-
 
       sendMinedBoc(wallet, seqno, keyPair, _giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
     }
@@ -362,12 +346,6 @@ async function sendMinedBoc(
   }
   const wallets = [w3, w1]
 
-  for (let i = 0; i < 2; i++) {
-    for (const w of wallets) {
-      w.sendTransfer(transfer).catch(e => { })
-    }
-  }
-  
   let k = 0
   let lastError: unknown
 
@@ -388,7 +366,7 @@ async function sendMinedBoc(
       // lastError = err
       k++
 
-      if (e.status === 429) {
+      if (e.status === 429 || e.status == 500) {
         await delay(200)
       } else {
         break
@@ -397,7 +375,11 @@ async function sendMinedBoc(
     }
   }
 
-
+  for (let i = 0; i < 2; i++) {
+    for (const w of wallets) {
+      w.sendTransfer(transfer).catch(e => { })
+    }
+  }
 
 
 }
