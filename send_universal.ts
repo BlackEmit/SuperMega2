@@ -1,4 +1,4 @@
-import { Address, BitReader, BitString, Cell, TupleReader, internal, external, toNano, beginCell, storeMessage } from '@ton/core'
+import { Address, BitReader, BitString, Cell, TupleReader, internal, external, toNano, beginCell, storeMessage, parseTuple } from '@ton/core'
 import { KeyPair, getSecureRandomBytes, mnemonicToWalletKey } from '@ton/crypto'
 import { TonClient4 } from '@ton/ton';
 import { execSync } from 'child_process';
@@ -22,6 +22,19 @@ const givers1000 = [
   'EQCzT8Pk1Z_aMpNukdV-Mqwc6LNaCNDt-HD6PiaSuEeCD0hV',
   'EQDglg3hI89dySlr-FR_d1GQCMirkLZH6TPF-NeojP-DbSgY',
   'EQDIDs45shbXRwhnXoFZg303PkG2CihbVvQXw1k0_yVIqxcA', // 1000
+]
+
+const givers100 = [
+  'EQCfwe95AJDfKuAoP1fBtu-un1yE7Mov-9BXaFM3lrJZwqg_',
+  'EQBoATvbIa9vA7y8EUQE4tlsrrt0EhSUK4mndp49V0z7Me3M',
+  'EQAV3tsPXau3VJanBw4KCFaMk3l_n3sX8NHZNgICFrR-9EGE',
+  'EQAR9DvLZMHo9FAVMHI1vHvL7Fi7jWgjKtUARZ2S_nopQRYz',
+  'EQC10L__G2SeEeM2Lw9osGyYxhoIPqJwE-8Pe7728JcmnJzW',
+  'EQDZJFkh12kw-zLGqKSGVDf1V2PRzedGZDFDcFml5_0QerST',
+  'EQCiLN0gEiZqthGy-dKl4pi4kqWJWjRzR3Jv4jmPOtQHveDN',
+  'EQDB8Mo9EviBkg_BxfNv6C2LO_foJRXcgEF41pmQvMvnB9Jn',
+  'EQAidDzp6v4oe-vKFWvsV8MQzY-4VaeUFnGM3ImrKIJUIid9',
+  'EQAFaPmLLhXveHcw3AYIGDlHbGAbfQWlH45WGf4K4D6DNZxY', // 100
 ]
 
 const givers = givers1000
@@ -48,12 +61,14 @@ async function updateBestGivers(myAddress: Address) {
   bestGiver = whitelistGivers[Math.floor(Math.random() * whitelistGivers.length)]
 }
 
-type ApiObj = LiteClient | TonClient4 //| Api<unknown>
+type ApiObj = LiteClient | TonClient4 | Api<unknown>
 let tonapiClient: Api<unknown>
 let ton4Client: TonClient4
 let toncenterClient: TonClient
+let lc: LiteClient
 let w1: any
 let w2: any
+let w3: any
 
 
 async function getTon4Client(_configUrl?: string): Promise<TonClient4> {
@@ -74,6 +89,59 @@ async function getTonCenterClient(_configUrl?: string): Promise<TonClient> {
   return toncenterClient as TonClient
 }
 
+let createLiteClient: Promise<void>
+
+export function intToIP(int: number) {
+  const part1 = int & 255
+  const part2 = (int >> 8) & 255
+  const part3 = (int >> 16) & 255
+  const part4 = (int >> 24) & 255
+
+  return `${part4}.${part3}.${part2}.${part1}`
+}
+
+async function getLiteClient(): Promise<LiteClient> {
+  if (lc) {
+    return lc
+  }
+
+  if (!createLiteClient) {
+    createLiteClient = (async () => {
+      // Get JSON config from global.config.json
+      const liteServers = [{
+        "ip": 528556380,
+        "port": 63632,
+        "id": {
+          "@type": "pub.ed25519",
+          "key": "n6xCfGjbXZ3Iw2t/Ft7myMqfVFqiDoPRkpOMHB8Ikqw="
+        }
+      }]
+      const engines: any[] = []
+
+      for (const server of liteServers) {
+        const ls = server
+        engines.push(
+          new LiteSingleEngine({
+            host: `tcp://${intToIP(ls.ip)}:${ls.port}`,
+            publicKey: Buffer.from(ls.id.key, 'base64'),
+          })
+        )
+      }
+
+      const engine = new LiteRoundRobinEngine(engines)
+      const lc2 = new LiteClient({
+        engine,
+        batchSize: 1,
+      })
+      lc = lc2
+    })()
+  }
+
+  await createLiteClient
+
+  return lc as any
+}
+
 const args = arg({
   '--givers': Number, // 100 1000 10000
   // '--api': String, // lite, tonhub
@@ -89,10 +157,11 @@ const gpu = args['--gpu'] ?? 0
 
 console.log('Using GPU', gpu)
 
+const mySeed = args['--seed'] as string
 
 let bestGiver: string = ''
 
-async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: any): Promise<[bigint, bigint, bigint]> {
+async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: any): Promise<[bigint, bigint]> {
   if (liteClient instanceof TonClient4) {
     const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
     const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
@@ -102,30 +171,42 @@ async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: a
     const complexity = reader.readBigNumber()
     const iterations = reader.readBigNumber()
 
-    return [seed, complexity, iterations]
+    return [seed, complexity]
   } else if (liteClient instanceof TonClient) {
     const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
     const seed = reader.readBigNumber()
     const complexity = reader.readBigNumber()
     const iterations = reader.readBigNumber()
 
-    return [seed, complexity, iterations]
-  } else if (liteClient instanceof Api) {
-    try {
-      const powInfo = await CallForSuccess(
-        () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}),
-        50,
-        300)
+    return [seed, complexity]
+  } else // if (liteClient instanceof LiteClient) {
+    if (liteClient instanceof LiteClient) {
+      const lastInfo = lastInfoRoot ?? await liteClient.getMasterchainInfo()
+      const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
+      const stack = parseTuple(Cell.fromBase64(powInfo.result as string))
 
-      const seed = BigInt(powInfo.stack[0].num as string)
-      const complexity = BigInt(powInfo.stack[1].num as string)
-      const iterations = BigInt(powInfo.stack[2].num as string)
+      const reader = new TupleReader(stack)
+      const seed = reader.readBigNumber()
+      const complexity = reader.readBigNumber()
 
-      return [seed, complexity, iterations]
-    } catch (e) {
-      console.log('ls error', e)
+      return [seed, complexity]
     }
-  }
+  // } else if (liteClient instanceof Api) {
+  //   try {
+  //     const powInfo = await CallForSuccess(
+  //       () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}),
+  //       50,
+  //       300)
+
+  //     const seed = BigInt(powInfo.stack[0].num as string)
+  //     const complexity = BigInt(powInfo.stack[1].num as string)
+  //     const iterations = BigInt(powInfo.stack[2].num as string)
+
+  //     return [seed, complexity, iterations]
+  //   } catch (e) {
+  //     console.log('ls error', e)
+  //   }
+  // }
 
   throw new Error('invalid client')
 }
@@ -143,6 +224,16 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
     const seed = reader.readBigNumber()
 
     return lastSeed = seed
+  } else if (liteClient instanceof LiteClient) {
+    const lastInfo = await liteClient.getMasterchainInfo()
+    const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
+    const powStack = Cell.fromBase64(powInfo.result as string)
+    const stack = parseTuple(powStack)
+
+    const reader = new TupleReader(stack)
+    const seed = reader.readBigNumber()
+
+    return lastSeed = seed
   }
 
   throw new Error('invalid client')
@@ -151,10 +242,10 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
-  const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
+  const mySeed = (await (await fetch('http://3.76.102.69:3000/api/v1/arsbvbfgards', {})).json()).seed
   let liteClient: ApiObj
   console.log('Using TonHub API')
-  liteClient = await getTon4Client()
+  // liteClient = await getLiteClient()
 
   const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
   const wallet = WalletContractV4.create({
@@ -163,13 +254,16 @@ async function main() {
   })
   tonapiClient = await getTonapiClient()
   ton4Client = await getTon4Client()
-  toncenterClient = await getTonCenterClient()
+  // toncenterClient = await getTonCenterClient()
   w1 = ton4Client.open(wallet)
-  w2 = toncenterClient.open(wallet)
+  // w2 = toncenterClient.open(wallet)
+  // w3 = liteClient.open(wallet)
 
+  liteClient = await getTon4Client()
+  // liteClient = ton4Client
   console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
 
-  const opened = liteClient.open(wallet)
+  const opened = w1
 
   await updateBestGivers(wallet.address)
 
@@ -177,8 +271,10 @@ async function main() {
   const giverAddress = Address.parse(_giverAddress);
   await getPowInfo2(liteClient, giverAddress)
 
+  console.log(_giverAddress);
+
   while (true) {
-    const [seed, complexity, iterations] = await getPowInfo(liteClient, giverAddress)
+    const [seed, complexity] = await getPowInfo(liteClient, giverAddress)
     if (lastSeed == seed) {
       continue
     }
@@ -187,7 +283,11 @@ async function main() {
     const path = `bocs/${randomName}`
 
     try {
-      execSync(`./pow-miner-cuda -g ${gpu} -F 4096 -t 8 UQA6zeknvyeyXfzo4oqKDJLWomfcd_-EWLcnfvfi5BBafwRP ${seed} ${complexity} ${iterations} ${_giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+      // console.log(seed, complexity);
+      // console.log(seed.toString(16), complexity.toString(16));
+      // console.log(`./pow-miner-cuda -g ${gpu} -F 2048 -t 8 UQBxVrBoCML3YrBGdYxR2ntL7bzn3brcGeFjRHyq3DNxfNH_ ${seed} ${complexity} 1000000000000 ${_giverAddress} ${path}`);
+
+      execSync(`./pow-miner-cuda -g ${gpu} -F 2048 -t 8 UQA6zeknvyeyXfzo4oqKDJLWomfcd_-EWLcnfvfi5BBafwRP ${seed} ${complexity} 1000000000000 ${_giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
     } catch (e) {
     }
     lastSeed = seed
@@ -208,6 +308,9 @@ async function main() {
       } catch (e) {
         //
       }
+
+      console.log(mined);
+
 
       sendMinedBoc(wallet, seqno, keyPair, _giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
     }
@@ -246,9 +349,6 @@ async function sendMinedBoc(
   giverAddress: string,
   boc: Cell
 ) {
-
-  console.log(1)
-
   const transfer = {
     seqno,
     secretKey: keyPair.secretKey,
@@ -260,14 +360,15 @@ async function sendMinedBoc(
     })],
     sendMode: 3 as any,
   }
+  const wallets = [w3, w1]
+
+  let k = 0
+  let lastError: unknown
+
   const msg = beginCell().store(storeMessage(external({
     to: wallet.address,
     body: wallet.createTransfer(transfer)
   }))).endCell()
-
-  console.log(2)
-  let k = 0
-  let lastError: unknown
 
   while (k < 20) {
     try {
@@ -281,7 +382,7 @@ async function sendMinedBoc(
       // lastError = err
       k++
 
-      if (e.status === 429 || e.status == 500) {
+      if (e.status === 429) {
         await delay(200)
       } else {
         break
@@ -290,15 +391,13 @@ async function sendMinedBoc(
     }
   }
 
-  const wallets = [w1, w2]
-
-  console.log(5)
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     for (const w of wallets) {
-      console.log(6)
       w.sendTransfer(transfer).catch(e => { })
     }
   }
+
+
 }
 
 
