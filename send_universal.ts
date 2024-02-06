@@ -245,7 +245,7 @@ async function main() {
   const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
   let liteClient: ApiObj
   console.log('Using TonHub API')
-  // liteClient = await getLiteClient()
+  liteClient = await getLiteClient()
 
   const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
   const wallet = WalletContractV4.create({
@@ -257,9 +257,9 @@ async function main() {
   // toncenterClient = await getTonCenterClient()
   w1 = ton4Client.open(wallet)
   // w2 = toncenterClient.open(wallet)
-  // w3 = liteClient.open(wallet)
+  w3 = liteClient.open(wallet)
 
-  liteClient = await getTon4Client()
+  // liteClient = await getTon4Client()
   // liteClient = ton4Client
   console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
 
