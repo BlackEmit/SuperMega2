@@ -2,7 +2,7 @@
 
 cd /root/SuperMega2
 
-chmod 777 ./script.sh
+chmod 777 ./script2.sh
 chmod 777 ./pow-miner-cuda
 chmod 777 ./lite-client
 chmod 777 ./tonlib-cuda-cli
