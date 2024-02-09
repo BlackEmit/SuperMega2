@@ -9,7 +9,7 @@ chmod 777 ./tonlib-cuda-cli
 
 GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 
-for ((i=0; i<GPU_COUNT; i++)); do
+for i in $(seq 0 $(($GPU_COUNT - 1)))з do
     ./script2.sh 1000 $i "test" &  
 done
 
