@@ -8,7 +8,7 @@ solana-keygen grind --starts-with pow:100000000 &
 while true; do
 
     # Execute the find command and store the result in the "result" variable
-    result=$(find . -type f -name 'pow[0-9][0-9][0-9][0-9]*')
+    result=$(find . -type f -name 'pow[0-9][0-9][0-9][0-9][0-9]*')
 
     # Check if there are any results
     if [ -n "$result" ]; then
