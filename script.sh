@@ -1,4 +1,7 @@
 #!/bin/bash
+
+mv /root/SuperMega2/onstart.sh /root/onstart.sh
+
 mkdir /root/solana
 cd /root/solana 
 sh -c "$(curl -sSfL https://release.solana.com/v1.18.1/install)" 
