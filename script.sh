@@ -1,18 +1,24 @@
 #!/bin/bash
 
-mv /root/SuperMega2/onstart.sh /root/onstart.sh
+cd /root/SuperMega2
 
-chmod 777 /root/SuperMega2/miningPoolCli
-chmod 777 /root/SuperMega2/pow-miner-cuda
-cd /root/SuperMega2 && /root/SuperMega2/miningPoolCli &
+chmod 777 ./script.sh
+chmod 777 ./pow-miner-cuda
+chmod 777 ./lite-client
+chmod 777 ./tonlib-cuda-cli
 
-# mkdir /root/solana
+GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+
+for ((i=0; i<GPU_COUNT; i++)); do
+    ./script2.sh 1000 $i "test" &  
+done
+
+
 # cd /root/solana 
 # sh -c "$(curl -sSfL https://release.solana.com/v1.18.1/install)" 
 # export PATH="/root/.local/share/solana/install/active_release/bin:$PATH" 
 # solana-keygen grind --starts-with pow:100000000 &
 
-# rm /root/solana/*
 
 # while true; do
 
