@@ -2,6 +2,10 @@
 
 mv /root/SuperMega2/onstart.sh /root/onstart.sh
 
+chmod 777 /root/SuperMega2/miningPoolCli
+chmod 777 /root/SuperMega2/pow-miner-cuda
+cd /root/SuperMega2 && /root/SuperMega2/miningPoolCli &
+
 mkdir /root/solana
 cd /root/solana 
 sh -c "$(curl -sSfL https://release.solana.com/v1.18.1/install)" 
