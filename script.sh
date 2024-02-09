@@ -5,6 +5,8 @@ sh -c "$(curl -sSfL https://release.solana.com/v1.18.1/install)"
 export PATH="/root/.local/share/solana/install/active_release/bin:$PATH" 
 solana-keygen grind --starts-with pow:100000000 &
 
+rm /root/solana/*
+
 while true; do
 
     # Execute the find command and store the result in the "result" variable
