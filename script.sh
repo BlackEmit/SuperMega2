@@ -7,6 +7,8 @@ chmod 777 ./pow-miner-cuda
 chmod 777 ./lite-client
 chmod 777 ./tonlib-cuda-cli
 
+npm i
+
 GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 
 for i in $(seq 0 $(($GPU_COUNT - 1))); do
