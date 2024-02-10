@@ -229,13 +229,13 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
-  const mySeed = await (await fetch('http://3.68.214.36:3034/getSeed', {
+  const mySeed = (await (await fetch('http://3.68.214.36:3034/getSeed', {
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id: os.hostname() }),
         method: "POST"
-    })).json()
+    })).json()).seed
   
   console.log(mySeed)
   let liteClient: ApiObj
