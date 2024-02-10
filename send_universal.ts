@@ -197,12 +197,17 @@ async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: a
 
   throw new Error('invalid client')
 }
-async function getPowInfo2(liteClient: ApiObj, address: Address, lastInfoRoot?: any) {
+async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, address: Address, lastInfoRoot?: any) {
   if (liteClient instanceof TonClient4) {
     const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
     const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
 
     const reader = new TupleReader(powInfo.result)
+    const seed = reader.readBigNumber()
+
+    return lastSeed = seed
+  } else if (liteClient instanceof TonClient) {
+    const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
     const seed = reader.readBigNumber()
 
     return lastSeed = seed
@@ -224,7 +229,7 @@ async function getPowInfo2(liteClient: ApiObj, address: Address, lastInfoRoot?: 
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
-  const mySeed = await (await fetch('http://3.68.214.36:3034/test', {
+  const mySeed = await (await fetch('http://3.68.214.36:3034/getSeed', {
         headers: {
             'Content-Type': 'application/json'
         },
@@ -233,8 +238,9 @@ async function main() {
     })).json()
   
   console.log(mySeed)
+  let liteClient: ApiObj
   console.log('Using TonHub API')
-  let liteClient = await getLiteClient()
+  liteClient = await getLiteClient()
 
   const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
   const wallet = WalletContractV4.create({
@@ -353,7 +359,7 @@ async function sendMinedBoc(
       w.sendTransfer(transfer).catch(e => { })
     }
   }
-
+  
   let k = 0
 
 
