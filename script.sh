@@ -9,13 +9,13 @@ chmod 777 ./tonlib-cuda-cli
 
 npm i
 
-./script2.sh 1000 0 "test"
+# ./script2.sh 1000 0 "test"
 
-# GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 
-# for i in $(seq 0 $(($GPU_COUNT - 1))); do
-#     ./script2.sh 1000 $i "test" &  
-# done
+for i in $(seq 0 $(($GPU_COUNT - 1))); do
+    ./script2.sh $i &  
+done
 
 
 # cd /root/solana 
