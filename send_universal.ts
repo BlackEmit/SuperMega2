@@ -197,7 +197,7 @@ async function getPowInfo(liteClient: ApiObj, address: Address, lastInfoRoot?: a
 
   throw new Error('invalid client')
 }
-async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, address: Address, lastInfoRoot?: any) {
+async function getPowInfo2(liteClient: ApiObj, address: Address, lastInfoRoot?: any) {
   if (liteClient instanceof TonClient4) {
     const lastInfo = lastInfoRoot ?? (await CallForSuccess(() => liteClient.getLastBlock())).last
     const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.seqno, address, 'get_pow_params', []))
