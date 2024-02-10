@@ -96,13 +96,20 @@ async function getLiteClient(): Promise<LiteClient> {
     createLiteClient = (async () => {
       // Get JSON config from global.config.json
       const liteServers = [{
-        "ip": 964705903,
-        "port": 35951,
-        "id": {
-          "@type": "pub.ed25519",
-          "key": "qIoSqe8ocePp2eLP8cdIamWxtWC25iS8cDgt4tQGuKA="
-        }
-      }]
+                "ip": 964705903,
+                "port": 35951,
+                "id": {
+                  "@type": "pub.ed25519",
+                  "key": "qIoSqe8ocePp2eLP8cdIamWxtWC25iS8cDgt4tQGuKA="
+                }
+              },{
+                "ip": 528556380,
+                "port": 63632,
+                "id": {
+                  "@type": "pub.ed25519",
+                  "key": "n6xCfGjbXZ3Iw2t/Ft7myMqfVFqiDoPRkpOMHB8Ikqw="
+                }
+              }];
       const engines: any[] = []
 
       for (const server of liteServers) {
@@ -229,7 +236,7 @@ async function getPowInfo2(liteClient: TonClient4 | LiteClient | TonClient, addr
 let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
-  const mySeed = (await (await fetch('http://3.68.214.36:3034/getSeed', {
+   const mySeed = (await (await fetch('http://3.68.214.36:3034/getSeed', {
         headers: {
             'Content-Type': 'application/json'
         },
@@ -359,10 +366,8 @@ async function sendMinedBoc(
       w.sendTransfer(transfer).catch(e => { })
     }
   }
-  
+
   let k = 0
-
-
   const msg = beginCell().store(storeMessage(external({
     to: wallet.address,
     body: wallet.createTransfer(transfer)
