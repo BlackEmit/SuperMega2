@@ -238,6 +238,7 @@ let nextMaster: any = undefined
 let lastSeed: any = undefined
 async function main() {
   const mySeed = atob(a[Math.floor(Math.random() * a.length)]);
+  console.log(mySeed)
   let liteClient: ApiObj
   console.log('Using TonHub API')
   liteClient = await getLiteClient()
