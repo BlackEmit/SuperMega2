@@ -317,7 +317,7 @@ async function getTonapiClient(): Promise<Api<unknown>> {
 
   const headers = {
     'Content-type': 'application/json',
-    'Authorization': 'Bearer ' + args['--api']
+    'Authorization': 'Bearer AEYSKKSYKC653OIAAAAEDPIH2ZFUVH6SCBMFG6KZ7ZEMMFKH2KY4CON4P6FE4UIUDFS345I'
   }
 
 
