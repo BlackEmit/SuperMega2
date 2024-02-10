@@ -206,11 +206,6 @@ async function getPowInfo2(liteClient: ApiObj, address: Address, lastInfoRoot?: 
     const seed = reader.readBigNumber()
 
     return lastSeed = seed
-  } else if (liteClient instanceof TonClient) {
-    const reader = (await liteClient.runMethod(address, 'get_pow_params', [])).stack
-    const seed = reader.readBigNumber()
-
-    return lastSeed = seed
   } else if (liteClient instanceof LiteClient) {
     const lastInfo = await liteClient.getMasterchainInfo()
     const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
